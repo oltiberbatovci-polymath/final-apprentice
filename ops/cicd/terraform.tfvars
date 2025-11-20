@@ -24,8 +24,8 @@ terraform_state_key    = "state/terraform.tfstate"
 
 # You'll need to update these after running terraform apply in ops/iac
 ecr_repository_url         = "522814722683.dkr.ecr.us-east-1.amazonaws.com/infrastructure-backendstaging"
-ecs_cluster_name           = "final-apprentice-staging"
-ecs_service_name           = "final-apprentice-staging-api"
+ecs_cluster_name           = "final-apprentice-dev"
+ecs_service_name           = "final-apprentice-dev-api"
 frontend_bucket_name       = "final-apprentice-frontend-staging"
 cloudfront_distribution_id = "ET562LRD5JTSK"
 alb_name                   = "final-apprentice-alb-staging"
