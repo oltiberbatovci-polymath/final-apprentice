@@ -27,7 +27,7 @@ ecr_repository_url         = "264765155009.dkr.ecr.us-east-1.amazonaws.com/infra
 ecs_cluster_name           = "final-apprentice-staging"
 ecs_service_name           = "final-apprentice-staging-api"
 frontend_bucket_name       = "final-apprentice-frontend-staging"
-cloudfront_distribution_id = "E3RTZMLPVURQ2D"
+cloudfront_distribution_id = "ET562LRD5JTSK"
 alb_name                   = "final-apprentice-alb-staging"
 app_health_url             = "http://final-apprentice-alb-staging-1337149599.us-east-1.elb.amazonaws.com"
 
