@@ -23,7 +23,7 @@ terraform_state_key    = "state/terraform.tfstate"
 # to get the actual values after infrastructure is deployed
 
 # You'll need to update these after running terraform apply in ops/iac
-ecr_repository_url         = "264765155009.dkr.ecr.us-east-1.amazonaws.com/infrastructure-backenddev"
+ecr_repository_url         = "22814722683.dkr.ecr.us-east-1.amazonaws.com/infrastructure-backenddev"
 ecs_cluster_name           = "final-apprentice-staging"
 ecs_service_name           = "final-apprentice-staging-api"
 frontend_bucket_name       = "final-apprentice-frontend-staging"
@@ -34,7 +34,7 @@ app_health_url             = "http://final-apprentice-alb-staging-1337149599.us-
 # =====================
 # Optional: SNS notifications
 # =====================
-sns_topic_arn = "arn:aws:sns:us-east-1:264765155009:dev-alerts"
+sns_topic_arn = "arn:aws:sns:us-east-1:522814722683:dev-alerts"
 
 # =====================
 # Tags

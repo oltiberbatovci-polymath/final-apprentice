@@ -3,7 +3,7 @@
 # CodeStar Connection
 output "codestar_connection_arn" {
   description = "ARN of the CodeStar Connection to GitHub"
-  value       = "arn:aws:codeconnections:us-east-1:264765155009:connection/b824b735-4a6e-4881-ad89-3a7879f77536"
+  value       = "arn:aws:codeconnections:us-east-1:522814722683:connection/b824b735-4a6e-4881-ad89-3a7879f77536"
 }
 
 output "codestar_connection_status" {
