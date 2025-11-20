@@ -17,7 +17,7 @@ phases:
       - npm run build --prefix packages/web
   post_build:
     commands:
-      - echo Deploying frontend assets to S3 bucket: $FRONTEND_BUCKET
+      - echo Deploying frontend assets to S3 bucket - $FRONTEND_BUCKET
       - aws s3 sync packages/web/dist "s3://$FRONTEND_BUCKET" --delete
       - |
         if [ -n "$CLOUDFRONT_DIST_ID" ]; then

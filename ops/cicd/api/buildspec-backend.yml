@@ -21,7 +21,7 @@ phases:
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
       - if [ -z "$IMAGE_TAG" ]; then IMAGE_TAG="latest"; fi
       - IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-      - echo "Using image URI: $IMAGE_URI"
+      - echo "Using image URI - $IMAGE_URI"
       - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
   build:
     commands:
