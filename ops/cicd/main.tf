@@ -1,4 +1,4 @@
-# CI/CD Pipeline Module
+# CI/CD Pipeline Modules
 
 # Data sources
 data "aws_caller_identity" "current" {}
