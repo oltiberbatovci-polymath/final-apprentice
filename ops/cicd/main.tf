@@ -433,8 +433,8 @@ resource "aws_codepipeline" "backend" {
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
-      input_artifacts  = ["backend_build"]
-      output_artifacts = []
+      input_artifacts  = ["backend_source"]
+      output_artifacts = [""]
       version          = "1"
 
       configuration = {
@@ -451,7 +451,7 @@ resource "aws_codepipeline" "backend" {
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
-      input_artifacts  = ["backend_build"]
+      input_artifacts  = ["backend_source"]
       output_artifacts = []
       version          = "1"
 
