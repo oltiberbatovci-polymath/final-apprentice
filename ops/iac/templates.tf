@@ -28,7 +28,7 @@ locals {
         },
         {
           name  = "NODE_ENV"
-          value = var.environment == "prod" ? "production" : "development"
+          value = var.environment == "staging" ? "staging" : "development"
         },
         {
           name  = "DB_HOST"
@@ -97,7 +97,7 @@ locals {
         },
         {
           name  = "NODE_ENV"
-          value = var.environment == "prod" ? "production" : "development"
+          value = var.environment == "staging" ? "staging" : "development"
         },
         {
           name  = "DB_HOST"

@@ -59,8 +59,8 @@ module "rds" {
   performance_insights_enabled = true
   alarm_actions                = [module.sns.sns_topic_arn]
 
-  # Read replica for production
-  create_read_replica         = var.environment == "prod" ? true : false
+  # Read replica for staging
+  create_read_replica         = var.environment == "staging" ? true : false
   read_replica_instance_class = var.rds_instance_class
 
   tags = var.tags

@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = "group1-task-bucket123123123"
+    bucket = "final-apprentice-staging-terraform-state"
     key    = "state/terraform.tfstate"
     region = "us-east-1"
   }

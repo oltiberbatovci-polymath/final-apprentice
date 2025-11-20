@@ -1,0 +1,108 @@
+version: 0.2
+
+env:
+  variables:
+    TF_VERSION: "1.6.0"
+    TF_IN_AUTOMATION: "true"
+    TF_INPUT: "false"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - |
+        echo "=== Terraform Plan Stage ==="
+        echo Installing Terraform ${TF_VERSION}...
+        wget https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+        unzip terraform_${TF_VERSION}_linux_amd64.zip
+        mv terraform /usr/local/bin/
+        terraform version
+        echo Installing additional tools...
+        pip3 install awscli --upgrade
+
+  pre_build:
+    commands:
+      - |
+        echo "=== Pre-Plan Setup ==="
+        echo "Initial working directory:"
+        pwd
+        echo "Directory structure:"
+        ls -la
+        echo "Changing to ops/iac directory..."
+        cd ops/iac
+        pwd
+        ls -la
+        
+        echo "=== Initializing Terraform ==="
+        terraform init -backend-config="bucket=$TF_BACKEND_BUCKET" \
+          -backend-config="key=$TF_BACKEND_KEY" \
+          -backend-config="region=us-east-1"
+        
+        echo "=== Formatting and Validating Terraform ==="
+        terraform fmt -check -recursive || echo "Formatting issues found"
+        terraform validate
+        
+        echo "=== Running Security Scan ==="
+        wget -O tfsec https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64 || echo "tfsec download failed"
+        if [ -f tfsec ]; then
+          chmod +x tfsec
+          ./tfsec --format json --out tfsec-results.json . || echo "tfsec scan completed with warnings"
+        fi
+
+  build:
+    commands:
+      - |
+        echo "=== Creating Terraform Plan ==="
+        cd ops/iac
+        
+        echo "Updating terraform.tfvars with secrets from environment variables..."
+        # Backup original tfvars
+        cp terraform.tfvars terraform.tfvars.backup
+        
+        # Add secrets to terraform.tfvars if they exist
+        if [ ! -z "$GITHUB_TOKEN" ]; then
+          echo 'github_token = "'$GITHUB_TOKEN'"' >> terraform.tfvars
+        fi
+        if [ ! -z "$SNS_SLACK_WEBHOOK" ]; then
+          echo 'sns_slack_webhook = "'$SNS_SLACK_WEBHOOK'"' >> terraform.tfvars
+        fi
+        if [ ! -z "$SNS_ALERT_EMAIL" ]; then
+          echo 'sns_alert_email = "'$SNS_ALERT_EMAIL'"' >> terraform.tfvars
+        fi
+        if [ ! -z "$APP_SECRET_STRING" ]; then
+          echo 'app_secret_string = "'$APP_SECRET_STRING'"' >> terraform.tfvars
+        fi
+        
+        echo "=== Running Terraform Plan ==="
+        terraform plan -detailed-exitcode -out=tfplan -var-file="terraform.tfvars"
+        
+        PLAN_EXIT_CODE=$?
+        echo "Terraform plan exit code: $PLAN_EXIT_CODE"
+        
+        if [ $PLAN_EXIT_CODE -eq 0 ]; then
+          echo "✓ No changes detected"
+        elif [ $PLAN_EXIT_CODE -eq 1 ]; then
+          echo "✗ Terraform plan failed with errors"
+          exit 1
+        elif [ $PLAN_EXIT_CODE -eq 2 ]; then
+          echo "✓ Changes detected - plan created successfully"
+        fi
+        
+        echo "=== Converting Plan to JSON ==="
+        terraform show -json tfplan > tfplan.json || echo "Plan JSON conversion completed"
+        
+        echo "=== Plan Summary ==="
+        terraform show tfplan | head -50
+
+artifacts:
+  files:
+    - ops/iac/tfplan
+    - ops/iac/tfplan.json
+    - ops/iac/tfsec-results.json
+  name: terraform-plan-artifacts
+
+cache:
+  paths:
+    - '/root/.terraform.d/plugin-cache/**/*'
+

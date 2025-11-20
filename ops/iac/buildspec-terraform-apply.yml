@@ -1,0 +1,92 @@
+version: 0.2
+
+env:
+  variables:
+    TF_VERSION: "1.6.0"
+    TF_IN_AUTOMATION: "true"
+    TF_INPUT: "false"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - |
+        echo "=== Terraform Apply Stage ==="
+        echo Installing Terraform ${TF_VERSION}...
+        wget https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+        unzip terraform_${TF_VERSION}_linux_amd64.zip
+        mv terraform /usr/local/bin/
+        terraform version
+        echo Installing additional tools...
+        pip3 install awscli --upgrade
+
+  pre_build:
+    commands:
+      - |
+        echo "=== Pre-Apply Setup ==="
+        echo "Initial working directory:"
+        pwd
+        echo "Directory structure:"
+        ls -la
+        echo "Changing to ops/iac directory..."
+        cd ops/iac
+        pwd
+        ls -la
+        
+        echo "=== Verifying Plan File Exists ==="
+        if [ ! -f "tfplan" ]; then
+          echo "✗ Terraform plan file (tfplan) not found!"
+          echo "This stage requires a plan file from the Plan stage."
+          exit 1
+        fi
+        
+        echo "=== Initializing Terraform ==="
+        terraform init -backend-config="bucket=$TF_BACKEND_BUCKET" \
+          -backend-config="key=$TF_BACKEND_KEY" \
+          -backend-config="region=us-east-1"
+
+  build:
+    commands:
+      - |
+        echo "=== Applying Terraform Changes ==="
+        cd ops/iac
+        
+        echo "=== Reviewing Plan ==="
+        terraform show tfplan | head -100
+        
+        echo "=== Applying Terraform Plan ==="
+        terraform apply -auto-approve tfplan
+        
+        if [ $? -eq 0 ]; then
+          echo "✓ Terraform apply completed successfully"
+        else
+          echo "✗ Terraform apply failed"
+          exit 1
+        fi
+        
+        echo "=== Generating Outputs ==="
+        terraform output -json > terraform-outputs.json
+        echo "Terraform outputs:"
+        terraform output
+
+  post_build:
+    commands:
+      - |
+        cd ops/iac
+        echo "=== Infrastructure Deployment Summary ==="
+        echo "Deployment completed on $(date)"
+        echo "Terraform outputs saved to terraform-outputs.json"
+        echo "Cleaning up temporary files..."
+        rm -f tfplan terraform.tfvars.backup
+        echo "=== Apply Stage Completed Successfully ==="
+
+artifacts:
+  files:
+    - ops/iac/terraform-outputs.json
+  name: terraform-apply-artifacts
+
+cache:
+  paths:
+    - '/root/.terraform.d/plugin-cache/**/*'
+
