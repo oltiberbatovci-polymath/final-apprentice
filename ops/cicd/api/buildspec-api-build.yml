@@ -2,13 +2,13 @@ version: 0.2
 
 env:
   variables:
-    PYTHON_ENV: "production"
+    NODE_ENV: "staging"
     DOCKER_BUILDKIT: "1"
 
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      nodejs: 20
     commands:
       - |
         echo "=== API Build Stage ==="
@@ -18,9 +18,7 @@ phases:
         echo "Directory structure:"
         ls -la
         cd packages/api
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pylint flake8 bandit safety
+        npm install
 
   pre_build:
     commands:
@@ -28,12 +26,9 @@ phases:
         echo "=== Pre-Build Checks ==="
         cd packages/api
         echo Running code quality checks...
-        python -m pylint src/app.py --exit-zero || echo "Pylint check completed with warnings"
-        python -m flake8 src/ tests/ --max-line-length=120 --exit-zero || echo "Flake8 check completed"
-        python -m bandit -r src/ -ll --exit-zero || echo "Bandit security check completed"
-        python -m safety check --json || echo "Safety check completed"
+        npm run lint
         echo Running unit tests...
-        pytest tests/ --cov=src --cov-report=xml --cov-report=html --cov-report=term -v || echo "Some tests may have failed, continuing build..."
+        npm test
         echo Logging in to Amazon ECR...
         aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
         COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
@@ -56,8 +51,8 @@ phases:
 
 artifacts:
   files:
-    - packages/api/requirements.txt
-    - packages/api/pyproject.toml
+    - packages/api/package-lock.json
+    - packages/api/package.json
   name: api-build-artifacts
   secondary-artifacts:
     coverage:

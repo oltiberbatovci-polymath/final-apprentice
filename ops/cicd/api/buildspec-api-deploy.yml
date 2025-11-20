@@ -2,24 +2,16 @@ version: 0.2
 
 env:
   variables:
-    PYTHON_ENV: "production"
+    NODE_ENV: "staging"
 
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      nodejs: 20
     commands:
       - |
         echo "=== API Deploy Stage ==="
-        pip install --upgrade awscli
-
-  pre_build:
-    commands:
-      - |
-        echo "=== Preparing Deployment ==="
-        COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-        IMAGE_TAG=${COMMIT_HASH:=latest}
-        echo "Deploying image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        npm install --upgrade awscli
 
   build:
     commands:
@@ -47,8 +39,8 @@ phases:
               ],
               "environment": [
                 {
-                  "name": "PYTHON_ENV",
-                  "value": "production"
+                  "name": "NODE_ENV",
+                  "value": "staging"
                 },
                 {
                   "name": "DATABASE_URL",

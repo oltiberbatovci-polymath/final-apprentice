@@ -2,23 +2,16 @@ version: 0.2
 
 env:
   variables:
-    PYTHON_ENV: "production"
+    NODE_ENV: "staging"
 
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      nodejs: 20
     commands:
       - |
         echo "=== API Test Stage ==="
-        pip install --upgrade awscli requests
-
-  pre_build:
-    commands:
-      - |
-        echo "=== Waiting for Service to be Ready ==="
-        echo "Waiting 60 seconds for ECS service to stabilize..."
-        sleep 60
+        npm install --upgrade awscli requests
 
   build:
     commands:
