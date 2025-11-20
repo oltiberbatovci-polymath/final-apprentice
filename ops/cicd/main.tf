@@ -363,7 +363,8 @@ resource "aws_codepipeline" "frontend" {
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
-      input_artifacts  = ["frontend_build"]
+      # Use the source artifact so the buildspec file is present in the container
+      input_artifacts  = ["frontend_source"]
       output_artifacts = []
       version          = "1"
 
