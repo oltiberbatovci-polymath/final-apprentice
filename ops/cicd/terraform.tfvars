@@ -23,7 +23,7 @@ terraform_state_key    = "state/terraform.tfstate"
 # to get the actual values after infrastructure is deployed
 
 # You'll need to update these after running terraform apply in ops/iac
-ecr_repository_url         = "522814722683.dkr.ecr.us-east-1.amazonaws.com/infrastructure-backenddev"
+ecr_repository_url         = "522814722683.dkr.ecr.us-east-1.amazonaws.com/infrastructure-backendstaging"
 ecs_cluster_name           = "final-apprentice-staging"
 ecs_service_name           = "final-apprentice-staging-api"
 frontend_bucket_name       = "final-apprentice-frontend-staging"
