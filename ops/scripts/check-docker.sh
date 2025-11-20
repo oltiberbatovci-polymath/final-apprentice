@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 echo -e "${BLUE}=====================================${NC}"
-echo -e "${BLUE}  Task Manager - Docker Health Check${NC}"
+echo -e "${BLUE}  Event Planner - Docker Health Check${NC}"
 echo -e "${BLUE}=====================================${NC}"
 echo ""
 

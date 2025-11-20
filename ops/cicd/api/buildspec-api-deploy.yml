@@ -1,0 +1,104 @@
+version: 0.2
+
+env:
+  variables:
+    PYTHON_ENV: "production"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - |
+        echo "=== API Deploy Stage ==="
+        pip install --upgrade awscli
+
+  pre_build:
+    commands:
+      - |
+        echo "=== Preparing Deployment ==="
+        COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+        IMAGE_TAG=${COMMIT_HASH:=latest}
+        echo "Deploying image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+  build:
+    commands:
+      - |
+        echo "=== Creating ECS Task Definition ==="
+        cat > taskdef.json <<EOF
+        {
+          "family": "$ECS_TASK_FAMILY",
+          "networkMode": "awsvpc",
+          "requiresCompatibilities": ["FARGATE"],
+          "cpu": "256",
+          "memory": "512",
+          "executionRoleArn": "$ECS_EXECUTION_ROLE_ARN",
+          "taskRoleArn": "$ECS_TASK_ROLE_ARN",
+          "containerDefinitions": [
+            {
+              "name": "$CONTAINER_NAME",
+              "image": "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG",
+              "essential": true,
+              "portMappings": [
+                {
+                  "containerPort": 5000,
+                  "protocol": "tcp"
+                }
+              ],
+              "environment": [
+                {
+                  "name": "PYTHON_ENV",
+                  "value": "production"
+                },
+                {
+                  "name": "DATABASE_URL",
+                  "value": "$DATABASE_URL"
+                }
+              ],
+              "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                  "awslogs-group": "$CLOUDWATCH_LOG_GROUP",
+                  "awslogs-region": "$AWS_DEFAULT_REGION",
+                  "awslogs-stream-prefix": "api"
+                }
+              },
+              "healthCheck": {
+                "command": ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 60
+              }
+            }
+          ]
+        }
+        EOF
+        
+        echo "Task definition created:"
+        cat taskdef.json
+        
+        echo "=== Registering Task Definition ==="
+        aws ecs register-task-definition --cli-input-json file://taskdef.json
+        
+        echo "=== Updating ECS Service ==="
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER_NAME \
+          --service $ECS_SERVICE_NAME \
+          --task-definition $ECS_TASK_FAMILY \
+          --force-new-deployment
+        
+        echo "=== Waiting for Service Stabilization ==="
+        aws ecs wait services-stable \
+          --cluster $ECS_CLUSTER_NAME \
+          --services $ECS_SERVICE_NAME || echo "Service stabilization check timed out, but deployment initiated"
+        
+        echo "=== Deployment Completed ==="
+        echo "Service status:"
+        aws ecs describe-services --cluster $ECS_CLUSTER_NAME --services $ECS_SERVICE_NAME
+
+artifacts:
+  files:
+    - taskdef.json
+  name: api-deploy-artifacts
+

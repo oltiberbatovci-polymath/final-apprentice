@@ -2,7 +2,7 @@
 
 ##############################################################################
 # Docker Startup Script
-# This script builds and starts all Docker services for the Task Manager app
+# This script builds and starts all Docker services for the Event Planner app
 ##############################################################################
 
 set -e
@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 echo -e "${BLUE}=====================================${NC}"
-echo -e "${BLUE}  Task Manager - Docker Startup${NC}"
+echo -e "${BLUE}  Event Planner - Docker Startup${NC}"
 echo -e "${BLUE}=====================================${NC}"
 echo ""
 
@@ -121,7 +121,7 @@ sleep 5
 
 echo ""
 echo -e "${BLUE}=====================================${NC}"
-echo -e "${GREEN}Task Manager is starting up!${NC}"
+echo -e "${GREEN}Event Planner is starting up!${NC}"
 echo ""
 echo -e "${BLUE}Access points:${NC}"
 echo -e "  Web UI:      ${GREEN}http://localhost:8080${NC}"

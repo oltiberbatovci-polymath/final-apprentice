@@ -57,8 +57,8 @@ echo "=========================================="
 echo "Note: Using AWS CodeStar Connections - no GitHub token needed!"
 echo ""
 read -p "Enter your GitHub username: " GITHUB_OWNER
-read -p "Enter your GitHub repository name [assignment-6-group-1]: " GITHUB_REPO
-GITHUB_REPO=${GITHUB_REPO:-assignment-6-group-1}
+read -p "Enter your GitHub repository name [final-apprentice]: " GITHUB_REPO
+GITHUB_REPO=${GITHUB_REPO:-final-apprentice}
 read -p "Enter your GitHub branch [main]: " GITHUB_BRANCH
 GITHUB_BRANCH=${GITHUB_BRANCH:-main}
 
@@ -77,7 +77,7 @@ github_branch = "$GITHUB_BRANCH"
 # =====================
 # Terraform State Configuration
 # =====================
-terraform_state_bucket = "group1-task-bucket123123123"
+terraform_state_bucket = "final-apprentice-staging-terraform-state"
 terraform_state_key    = "state/terraform.tfstate"
 
 # =====================
@@ -86,9 +86,9 @@ terraform_state_key    = "state/terraform.tfstate"
 ecr_repository_url         = "$ECR_REPO"
 ecs_cluster_name           = "$ECS_CLUSTER"
 ecs_service_name           = "$ECS_SERVICE"
-frontend_bucket_name       = "group1-frontend-dev123141241"
+frontend_bucket_name       = "final-apprentice-frontend-staging"
 cloudfront_distribution_id = "$CLOUDFRONT_ID"
-alb_name                   = "task-alb-dev123141241"
+alb_name                   = "final-apprentice-alb-staging"
 app_health_url             = "http://$ALB_DNS"
 
 # =====================
@@ -101,7 +101,7 @@ sns_topic_arn = "$SNS_TOPIC"
 # =====================
 tags = {
   Project     = "Cloud Infrastructure Deployment"
-  Environment = "dev"
+  Environment = "staging"
   ManagedBy   = "Terraform"
 }
 EOF

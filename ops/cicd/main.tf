@@ -7,12 +7,12 @@ data "aws_region" "current" {}
 # Use existing CodeStar Connection for GitHub (AVAILABLE)
 # User specified connection
 locals {
-  github_connection_arn = "arn:aws:codeconnections:us-east-1:264765155009:connection/b824b735-4a6e-4881-ad89-3a7879f77536"
+  github_connection_arn = "arn:aws:codeconnections:us-east-1:522814722683:connection/4e86954b-fdcd-4f72-963a-1e73346bba35"
 }
 
 # S3 bucket for pipeline artifacts
 resource "aws_s3_bucket" "artifacts" {
-  bucket        = "ecommerce-cicd-artifacts-${random_string.suffix.result}"
+  bucket        = "final-apprentice-staging-cicd-artifacts-${random_string.suffix.result}"
   force_destroy = true
 
   tags = var.tags
@@ -52,7 +52,7 @@ resource "random_string" "suffix" {
 
 # CodeBuild projects
 resource "aws_codebuild_project" "terraform" {
-  name         = "ecommerce-terraform"
+  name         = "final-apprentice-staging-terraform"
   description  = "Terraform infrastructure build project"
   service_role = aws_iam_role.codebuild.arn
 
@@ -84,14 +84,14 @@ resource "aws_codebuild_project" "terraform" {
 
   source {
     type      = "CODEPIPELINE"
-    buildspec = "ops/iac/buildspec-terraform.yml"
+    buildspec = "ops/cicd/infrastructure/buildspec-terraform.yml"
   }
 
   tags = var.tags
 }
 
 resource "aws_codebuild_project" "frontend" {
-  name         = "ecommerce-frontend"
+  name         = "final-apprentice-staging-frontend"
   description  = "Frontend web application build and deploy project"
   service_role = aws_iam_role.codebuild.arn
 
@@ -123,14 +123,14 @@ resource "aws_codebuild_project" "frontend" {
 
   source {
     type      = "CODEPIPELINE"
-    buildspec = "packages/web/buildspec-frontend.yml"
+    buildspec = "ops/cicd/web/buildspec-frontend.yml"
   }
 
   tags = var.tags
 }
 
 resource "aws_codebuild_project" "backend" {
-  name         = "ecommerce-backend"
+  name         = "final-apprentice-staging-backend"
   description  = "Backend API build and deploy project"
   service_role = aws_iam_role.codebuild.arn
 
@@ -208,7 +208,7 @@ resource "aws_codebuild_project" "backend" {
 
   source {
     type      = "CODEPIPELINE"
-    buildspec = "packages/api/buildspec-backend.yml"
+    buildspec = "ops/cicd/api/buildspec-backend.yml"
   }
 
   tags = var.tags
@@ -216,7 +216,7 @@ resource "aws_codebuild_project" "backend" {
 
 # CodePipeline for Infrastructure
 resource "aws_codepipeline" "terraform" {
-  name     = "ecommerce-terraform-pipeline"
+  name     = "final-apprentice-staging-terraform-pipeline"
   role_arn = aws_iam_role.codepipeline.arn
 
   artifact_store {
@@ -269,6 +269,18 @@ resource "aws_codepipeline" "terraform" {
   }
 
   stage {
+    name = "Approve"
+
+    action {
+      name     = "ManualApproval"
+      category = "Approval"
+      owner    = "AWS"
+      provider = "Manual"
+      version  = "1"
+    }
+  }
+
+  stage {
     name = "Apply"
 
     action {
@@ -296,7 +308,7 @@ resource "aws_codepipeline" "terraform" {
 
 # CodePipeline for Frontend
 resource "aws_codepipeline" "frontend" {
-  name     = "ecommerce-frontend-pipeline"
+  name     = "final-apprentice-staging-frontend-pipeline"
   role_arn = aws_iam_role.codepipeline.arn
 
   artifact_store {
@@ -324,6 +336,7 @@ resource "aws_codepipeline" "frontend" {
     }
   }
 
+
   stage {
     name = "Build"
 
@@ -342,12 +355,30 @@ resource "aws_codepipeline" "frontend" {
     }
   }
 
+  stage {
+    name = "Deploy"
+
+    action {
+      name             = "FrontendDeploy"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["frontend_build"]
+      output_artifacts = []
+      version          = "1"
+
+      configuration = {
+        ProjectName = aws_codebuild_project.frontend.name
+      }
+    }
+  }
+
   tags = var.tags
 }
 
 # CodePipeline for Backend
 resource "aws_codepipeline" "backend" {
-  name     = "ecommerce-backend-pipeline"
+  name     = "final-apprentice-staging-backend-pipeline"
   role_arn = aws_iam_role.codepipeline.arn
 
   artifact_store {
@@ -385,6 +416,42 @@ resource "aws_codepipeline" "backend" {
       provider         = "CodeBuild"
       input_artifacts  = ["backend_source"]
       output_artifacts = ["backend_build"]
+      version          = "1"
+
+      configuration = {
+        ProjectName = aws_codebuild_project.backend.name
+      }
+    }
+  }
+
+  stage {
+    name = "Deploy"
+
+    action {
+      name             = "BackendDeploy"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["backend_build"]
+      output_artifacts = []
+      version          = "1"
+
+      configuration = {
+        ProjectName = aws_codebuild_project.backend.name
+      }
+    }
+  }
+
+  stage {
+    name = "Test"
+
+    action {
+      name             = "BackendTest"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["backend_build"]
+      output_artifacts = []
       version          = "1"
 
       configuration = {

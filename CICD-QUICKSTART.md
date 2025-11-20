@@ -19,7 +19,7 @@ Your CI/CD pipelines now use **AWS CodeStar Connections** to automatically trigg
 Edit `ops/cicd/terraform.tfvars`:
 ```hcl
 github_owner  = "YOUR_GITHUB_USERNAME"  # ← Change this
-github_repo   = "assignment-6-group-1"  # ← Verify this matches your repo
+github_repo   = "final-apprentice"  # ← Verify this matches your repo
 github_branch = "main"
 ```
 

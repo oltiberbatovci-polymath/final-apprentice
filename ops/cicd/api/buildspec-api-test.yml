@@ -1,0 +1,70 @@
+version: 0.2
+
+env:
+  variables:
+    PYTHON_ENV: "production"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - |
+        echo "=== API Test Stage ==="
+        pip install --upgrade awscli requests
+
+  pre_build:
+    commands:
+      - |
+        echo "=== Waiting for Service to be Ready ==="
+        echo "Waiting 60 seconds for ECS service to stabilize..."
+        sleep 60
+
+  build:
+    commands:
+      - |
+        echo "=== Testing API Health Endpoint ==="
+        echo "ALB DNS Name: $ALB_DNS_NAME"
+        echo "Testing health endpoint..."
+        
+        MAX_RETRIES=10
+        RETRY_COUNT=0
+        HEALTH_CHECK_PASSED=false
+        
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES"
+          
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://$ALB_DNS_NAME/health || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✓ Health check passed! HTTP Status: $HTTP_CODE"
+            HEALTH_CHECK_PASSED=true
+            break
+          else
+            echo "✗ Health check failed. HTTP Status: $HTTP_CODE"
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "Waiting 15 seconds before retry..."
+              sleep 15
+            fi
+          fi
+        done
+        
+        if [ "$HEALTH_CHECK_PASSED" = "false" ]; then
+          echo "✗ Health check failed after $MAX_RETRIES attempts"
+          echo "Service may still be starting. Checking ECS service status..."
+          aws ecs describe-services --cluster $ECS_CLUSTER_NAME --services $ECS_SERVICE_NAME
+          exit 1
+        fi
+        
+        echo "=== Running Additional API Tests ==="
+        echo "Testing API root endpoint..."
+        curl -f http://$ALB_DNS_NAME/ || echo "Root endpoint test completed"
+        
+        echo "=== Test Stage Completed Successfully ==="
+
+artifacts:
+  files:
+    - "**/*"
+  name: api-test-artifacts
+

@@ -228,7 +228,7 @@ warm_standby = true # Enable warm standby
 # RDS Database Configuration
 # =====================
 rds_instance_class          = "db.t3.micro" # Small instance for dev
-rds_engine_version          = "15.7"        # PostgreSQL version (updated to available version)
+rds_engine_version          = "15.10"       # PostgreSQL version (latest 15.x available in AWS RDS)
 rds_allocated_storage       = 20            # 20GB initial storage
 rds_max_allocated_storage   = 100           # Auto-scale up to 100GB
 rds_multi_az                = false         # Single AZ for dev (cost savings)

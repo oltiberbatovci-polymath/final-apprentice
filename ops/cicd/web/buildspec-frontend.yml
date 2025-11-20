@@ -1,0 +1,34 @@
+version: 0.2
+
+env:
+  variables:
+    NODE_ENV: staging
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo Installing frontend dependencies...
+      - npm ci --prefix packages/web
+  build:
+    commands:
+      - echo Building frontend application...
+      - npm run build --prefix packages/web
+  post_build:
+    commands:
+      - echo Deploying frontend assets to S3 bucket: $FRONTEND_BUCKET
+      - aws s3 sync packages/web/dist "s3://$FRONTEND_BUCKET" --delete
+      - |
+        if [ -n "$CLOUDFRONT_DIST_ID" ]; then
+          echo "Invalidating CloudFront distribution $CLOUDFRONT_DIST_ID"
+          aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DIST_ID" --paths "/*"
+        else
+          echo "CLOUDFRONT_DIST_ID not provided. Skipping invalidation."
+        fi
+
+artifacts:
+  base-directory: packages/web/dist
+  files:
+    - '**/*'
+

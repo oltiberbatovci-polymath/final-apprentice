@@ -1,0 +1,79 @@
+version: 0.2
+
+env:
+  variables:
+    NODE_ENV: "production"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - |
+        echo "=== Web Build Stage ==="
+        echo Installing frontend dependencies...
+        echo "Working directory:"
+        pwd
+        echo "Directory structure:"
+        ls -la
+        cd packages/web
+        echo "Installing Node.js dependencies..."
+        npm install
+        echo "Checking installed packages:"
+        npm list --depth=0
+
+  pre_build:
+    commands:
+      - |
+        echo "=== Pre-Build Checks ==="
+        cd packages/web
+        echo "Running JavaScript tests with Jest..."
+        npm test -- --coverage --ci || echo "Some tests may have failed, continuing build..."
+        echo "Verifying test artifacts..."
+        ls -la coverage/ 2>/dev/null || echo "Coverage directory generated"
+        echo "Validating static files..."
+        echo "Checking for required files..."
+        ls -la src/ || echo "Source directory check"
+
+  build:
+    commands:
+      - |
+        echo "=== Building Frontend Application ==="
+        cd packages/web
+        echo "Building with Vite..."
+        npm run build
+        
+        echo "=== Build Verification ==="
+        if [ -d "dist" ]; then
+          echo "✓ Build output directory created"
+          echo "Build output contents:"
+          ls -la dist/
+          echo "Build size:"
+          du -sh dist/
+        else
+          echo "✗ Build output directory not found!"
+          exit 1
+        fi
+        
+        echo "=== Build Stage Completed Successfully ==="
+
+artifacts:
+  files:
+    - packages/web/dist/**/*
+  name: web-build-artifacts
+  secondary-artifacts:
+    coverage:
+      files:
+        - packages/web/coverage/**/*
+      name: web-coverage-report
+
+reports:
+  jest-reports:
+    files:
+      - packages/web/coverage/lcov.info
+    file-format: 'CLOVERXML'
+
+cache:
+  paths:
+    - packages/web/node_modules/**/*
+

@@ -1,0 +1,75 @@
+version: 0.2
+
+env:
+  variables:
+    NODE_ENV: staging
+
+phases:
+  install:
+    runtime-versions:
+      docker: 20
+      nodejs: 20
+    commands:
+      - echo Installing API dependencies...
+      - npm ci --prefix packages/api
+      - echo Running TypeScript build/test checks...
+      - npm test --prefix packages/api
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - if [ -z "$IMAGE_TAG" ]; then IMAGE_TAG="latest"; fi
+      - IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      - echo "Using image URI: $IMAGE_URI"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+  build:
+    commands:
+      - echo Building Docker image...
+      - docker build -f packages/api/Dockerfile -t "$IMAGE_URI" -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" packages/api
+  post_build:
+    commands:
+      - echo Pushing Docker images to ECR...
+      - docker push "$IMAGE_URI"
+      - docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+      - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$IMAGE_URI" > packages/api/imagedefinitions.json
+      - echo "Registering new ECS task definition revision..."
+      - aws ecs describe-task-definition --task-definition "$ECS_TASK_FAMILY" --query 'taskDefinition' > packages/api/taskdef.json
+      - export NEW_IMAGE="$IMAGE_URI"
+      - |
+        cat packages/api/taskdef.json | jq '
+          del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .registeredAt,
+            .registeredBy,
+            .compatibilities,
+            .requiresAttributes
+          ) |
+          .containerDefinitions |= map(
+            if .name == env.CONTAINER_NAME then
+              .image = env.NEW_IMAGE
+            else
+              .
+            end
+          )
+        ' > packages/api/new-taskdef.json
+      - |
+        NEW_TASKDEF_ARN=$(aws ecs register-task-definition \
+          --cli-input-json file://packages/api/new-taskdef.json \
+          --query 'taskDefinition.taskDefinitionArn' \
+          --output text)
+        echo "Registered task definition: $NEW_TASKDEF_ARN"
+        aws ecs update-service \
+          --cluster "$ECS_CLUSTER_NAME" \
+          --service "$ECS_SERVICE_NAME" \
+          --task-definition "$NEW_TASKDEF_ARN"
+      - echo "Deployment triggered for ECS service $ECS_SERVICE_NAME"
+
+artifacts:
+  files:
+    - packages/api/imagedefinitions.json
+    - packages/api/taskdef.json
+    - packages/api/new-taskdef.json
+

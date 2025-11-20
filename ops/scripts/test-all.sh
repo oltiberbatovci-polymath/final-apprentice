@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 echo "========================================="
-echo "  Task Manager - Complete Test Suite"
+echo "  Event Planner - Complete Test Suite"
 echo "========================================="
 echo ""
 

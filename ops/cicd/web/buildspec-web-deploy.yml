@@ -1,0 +1,106 @@
+version: 0.2
+
+env:
+  variables:
+    NODE_ENV: "production"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - |
+        echo "=== Web Deploy Stage ==="
+        pip install --upgrade awscli || true
+
+  pre_build:
+    commands:
+      - |
+        echo "=== Preparing Deployment ==="
+        echo "FRONTEND_BUCKET: $FRONTEND_BUCKET"
+        echo "CLOUDFRONT_DIST_ID: $CLOUDFRONT_DIST_ID"
+        cd packages/web
+        echo "Verifying build artifacts exist..."
+        if [ ! -d "dist" ]; then
+          echo "✗ Build artifacts not found! Running build..."
+          npm install
+          npm run build
+        fi
+        echo "Build artifacts verified:"
+        ls -la dist/
+
+  build:
+    commands:
+      - |
+        echo "=== Deploying to S3 ==="
+        cd packages/web
+        
+        echo "Syncing HTML files..."
+        aws s3 sync ./dist s3://$FRONTEND_BUCKET \
+          --exclude "*" \
+          --include "*.html" \
+          --delete \
+          --cache-control "no-cache, no-store, must-revalidate" \
+          --content-type "text/html" || { echo "HTML sync failed"; exit 1; }
+        
+        echo "Syncing CSS files..."
+        aws s3 sync ./dist s3://$FRONTEND_BUCKET \
+          --exclude "*" \
+          --include "*.css" \
+          --cache-control "public, max-age=31536000" \
+          --content-type "text/css" || { echo "CSS sync failed"; exit 1; }
+        
+        echo "Syncing JS files..."
+        aws s3 sync ./dist s3://$FRONTEND_BUCKET \
+          --exclude "*" \
+          --include "*.js" \
+          --cache-control "public, max-age=31536000" \
+          --content-type "application/javascript" || { echo "JS sync failed"; exit 1; }
+        
+        echo "Syncing other assets..."
+        aws s3 sync ./dist s3://$FRONTEND_BUCKET \
+          --exclude "*.html" \
+          --exclude "*.css" \
+          --exclude "*.js" \
+          --cache-control "public, max-age=31536000" || { echo "Assets sync failed"; exit 1; }
+        
+        echo "✓ S3 sync completed successfully"
+        
+        echo "=== Creating CloudFront Invalidation ==="
+        INVALIDATION_ID=$(aws cloudfront create-invalidation \
+          --distribution-id $CLOUDFRONT_DIST_ID \
+          --paths "/*" \
+          --query 'Invalidation.Id' \
+          --output text 2>&1)
+        
+        if [ $? -eq 0 ]; then
+          echo "✓ CloudFront invalidation created: $INVALIDATION_ID"
+        else
+          echo "⚠ CloudFront invalidation failed: $INVALIDATION_ID"
+          echo "S3 sync was successful, CloudFront will update eventually"
+        fi
+
+  post_build:
+    commands:
+      - |
+        echo "=== Deployment Verification ==="
+        echo "Waiting 30 seconds for CloudFront to propagate..."
+        sleep 30
+        
+        echo "Verifying S3 bucket contents..."
+        aws s3 ls s3://$FRONTEND_BUCKET/ --recursive || echo "Failed to list S3 bucket"
+        
+        echo "Getting CloudFront domain URL..."
+        CLOUDFRONT_URL=$(aws cloudfront get-distribution \
+          --id $CLOUDFRONT_DIST_ID \
+          --query 'Distribution.DomainName' \
+          --output text) || echo "Failed to get CloudFront URL"
+        
+        echo "CloudFront URL: https://$CLOUDFRONT_URL"
+        echo "=== Deployment Completed Successfully ==="
+
+artifacts:
+  files:
+    - packages/web/dist/**/*
+  name: web-deploy-artifacts
+

@@ -119,9 +119,17 @@ module "alb" {
 }
 
 # Standby ALB (Warm Standby)
+# Use shortened name to fit within AWS 32-char limit for ALB and target group names
+locals {
+  # Shorten standby ALB name to fit within limits
+  # Base: "final-apprentice-alb-staging" (29 chars)
+  # Standby: "final-appr-alb-stg-sb" (22 chars, with "-api" = 26 chars) ✓
+  standby_alb_name = "final-appr-alb-stg-sb"
+}
+
 module "alb_standby" {
   source                     = "./modules/alb"
-  name                       = "${var.alb_name}-stby"
+  name                       = local.standby_alb_name
   security_group_ids         = [module.vpc.alb_security_group_id]
   access_logs_bucket         = module.s3.alb_logs_bucket_name
   public_subnet_ids          = module.vpc.public_subnet_ids
@@ -224,12 +232,6 @@ module "sns" {
   tags            = var.tags
   sns_alert_email = var.sns_alert_email
   slack_webhook   = var.sns_slack_webhook
-}
-
-module "xray" {
-  source = "./modules/xray"
-  name   = var.ecs_name
-  tags   = var.tags
 }
 
 module "athena" {

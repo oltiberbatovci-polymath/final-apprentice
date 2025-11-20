@@ -10,7 +10,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 WEB_DIR="$PROJECT_ROOT/packages/web"
 
 echo "==================================="
-echo "Task Manager - Web Frontend Tests"
+echo "Event Planner - Web Frontend Tests"
 echo "==================================="
 echo ""
 
