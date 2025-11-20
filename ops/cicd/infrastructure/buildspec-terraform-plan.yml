@@ -9,7 +9,7 @@ env:
 phases:
   install:
     runtime-versions:
-      nodejs: 18
+      nodejs: 20
     commands:
       - |
         echo "=== Terraform Plan Stage ==="
@@ -19,7 +19,7 @@ phases:
         mv terraform /usr/local/bin/
         terraform version
         echo Installing additional tools...
-        pip3 install awscli --upgrade
+        npm install awscli --upgrade
 
   pre_build:
     commands:

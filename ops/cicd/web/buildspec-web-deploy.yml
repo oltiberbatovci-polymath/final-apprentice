@@ -11,7 +11,7 @@ phases:
     commands:
       - |
         echo "=== Web Deploy Stage ==="
-        pip install --upgrade awscli || true
+        npm install --upgrade awscli
 
   pre_build:
     commands:
