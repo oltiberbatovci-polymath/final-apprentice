@@ -77,7 +77,7 @@ variable "waf_allowed_countries" {
 variable "sns_alert_email" {
   description = "Email address for SNS alerts"
   type        = string
-  default     = "dev-alerts@example.com"
+  default     = "olti.berbatovci@polymath.services"
 }
 # CloudWatch dashboard and alarm variables
 variable "dashboard_body" {
@@ -101,7 +101,7 @@ variable "ecs_cpu_threshold" {
 variable "app_secret_string" {
   description = "Secret string for application (example)"
   type        = string
-  default     = "dev-placeholder"
+  default     = "staging"
 }
 variable "region" {
   description = "AWS region"

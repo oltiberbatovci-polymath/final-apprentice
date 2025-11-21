@@ -16,9 +16,15 @@ resource "aws_secretsmanager_secret" "rds_credentials" {
 
 resource "aws_secretsmanager_secret_version" "rds_credentials" {
   secret_id = aws_secretsmanager_secret.rds_credentials.id
+
   secret_string = jsonencode({
     username = var.master_username
     password = random_password.master_password.result
+    host     = aws_db_instance.primary.address
+    port     = aws_db_instance.primary.port
+    database = var.database_name
+
+    database_url = "postgresql://${var.master_username}:${random_password.master_password.result}@${aws_db_instance.primary.address}:${aws_db_instance.primary.port}/${var.database_name}"
   })
 }
 
@@ -178,10 +184,10 @@ resource "aws_db_instance" "primary" {
   # Deletion protection
   deletion_protection = var.deletion_protection
   # Always skip final snapshot for this non-production environment to avoid requiring a final_snapshot_identifier.
-  skip_final_snapshot = true
+  skip_final_snapshot = false
 
   # Copy tags to snapshots
-  copy_tags_to_snapshot = true
+  copy_tags_to_snapshot = false
 
   tags = merge(var.tags, {
     Name = "${var.name}-primary"

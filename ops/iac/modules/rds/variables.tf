@@ -106,11 +106,11 @@ variable "deletion_protection" {
   default     = true
 }
 
-variable "skip_final_snapshot" {
-  description = "Skip final snapshot when deleting the DB"
-  type        = bool
-  default     = true
-}
+# variable "skip_final_snapshot" {
+#   description = "Skip final snapshot when deleting the DB"
+#   type        = bool
+#   default     = true
+# }
 
 # Encryption
 variable "kms_key_id" {

@@ -420,36 +420,6 @@ module "security" {
   )
 }
 
-# module "monitoring_alarms" {
-#   source                     = "./modules/monitoring_alarms"
-#   alb_name                   = var.alb_name
-#   alb_arn                    = module.alb.alb_arn
-#   alb_arn_suffix             = module.alb.alb_arn_suffix
-#   sns_topic_arn              = module.sns.sns_topic_arn
-#   cloudfront_distribution_id = module.cloudfront.cloudfront_distribution_id
-#   environment                = var.environment
-#   tags                       = var.tags
-# }
-
-# module "cicd" {
-#   source                     = "../cicd"
-#   github_owner               = var.github_owner
-#   github_repo                = var.github_repo
-#   github_branch              = var.github_branch
-#   github_token               = var.github_token
-#   terraform_state_bucket     = "bardhi-ecom-terraform-state-dev"
-#   terraform_state_key        = "state/terraform.tfstate"
-#   ecr_repository_url         = module.ecr.repository_url
-#   ecs_cluster_name           = module.ecs.cluster_name
-#   ecs_service_name           = module.ecs.service_name
-#   frontend_bucket_name       = module.s3.frontend_bucket_name
-#   cloudfront_distribution_id = module.cloudfront.distribution_id
-#   alb_name                   = var.alb_name
-#   app_health_url             = "https://${module.alb.alb_dns_name}"
-#   sns_topic_arn              = module.sns.sns_topic_arn
-#   tags                       = var.tags
-# }
-
 module "ecr" {
   source      = "./modules/ecr"
   environment = var.environment
