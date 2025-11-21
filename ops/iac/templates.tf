@@ -70,6 +70,10 @@ locals {
           valueFrom = "${module.rds.secrets_manager_secret_arn}:password::"
         },
         {
+          name      = "DATABASE_URL"
+          valueFrom = "${module.rds.secrets_manager_secret_arn}:database_url::"
+        },
+        {
           name      = "REDIS_PASSWORD"
           valueFrom = "${module.elasticache.secrets_manager_secret_arn}:password::"
         }
@@ -149,6 +153,10 @@ locals {
         {
           name      = "DB_PASSWORD"
           valueFrom = "${module.rds_standby.secrets_manager_secret_arn}:password::"
+        },
+        {
+          name      = "DATABASE_URL"
+          valueFrom = "${module.rds_standby.secrets_manager_secret_arn}:database_url::"
         },
         {
           name      = "REDIS_PASSWORD"

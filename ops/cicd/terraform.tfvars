@@ -34,7 +34,7 @@ app_health_url             = "http://final-apprentice-alb-staging-1337149599.us-
 # =====================
 # Optional: SNS notifications
 # =====================
-sns_topic_arn = "arn:aws:sns:us-east-1:522814722683:dev-alerts"
+sns_topic_arn = "arn:aws:sns:us-east-1:522814722683:staging-alerts"
 
 # =====================
 # Tags

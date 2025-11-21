@@ -192,12 +192,12 @@ resource "aws_codebuild_project" "backend" {
 
     environment_variable {
       name  = "DATABASE_URL"
-      value = "postgresql://postgres:b9*6H[oU#BeezqOL@task-api-dev123141241-db-primary.cqb8wccsmbby.us-east-1.rds.amazonaws.com:5432/infrastructure"
+      value = "final-apprentice-dev-db-primary.c30g6ucu6xkt.us-east-1.rds.amazonaws.com:5432infrastructurearn:aws:secretsmanager:us-east-1:522814722683:secret:final-apprentice-dev-db-rds-credentials-ORErtF"
     }
 
     environment_variable {
       name  = "ALB_DNS_NAME"
-      value = "task-alb-dev123141241-1337149599.us-east-1.elb.amazonaws.com"
+      value = "final-apprentice-alb-staging-1146996109.us-east-1.elb.amazonaws.com"
     }
 
     environment_variable {
@@ -459,6 +459,60 @@ resource "aws_codepipeline" "backend" {
         ProjectName = aws_codebuild_project.backend.name
       }
     }
+  }
+
+  tags = var.tags
+}
+
+resource "aws_codestarnotifications_notification_rule" "terraform_pipeline_notifications" {
+  name        = "terraform-pipeline-notifications"
+  detail_type = "FULL"
+  resource    = aws_codepipeline.terraform.arn
+
+  event_type_ids = [
+    "codepipeline-pipeline-pipeline-execution-succeeded",
+    "codepipeline-pipeline-pipeline-execution-failed",
+  ]
+
+  target {
+    address = var.sns_topic_arn
+    type    = "SNS"
+  }
+
+  tags = var.tags
+}
+
+resource "aws_codestarnotifications_notification_rule" "frontend_pipeline_notifications" {
+  name        = "frontend-pipeline-notifications"
+  detail_type = "FULL"
+  resource    = aws_codepipeline.frontend.arn
+
+  event_type_ids = [
+    "codepipeline-pipeline-pipeline-execution-succeeded",
+    "codepipeline-pipeline-pipeline-execution-failed",
+  ]
+
+  target {
+    address = var.sns_topic_arn
+    type    = "SNS"
+  }
+
+  tags = var.tags
+}
+
+resource "aws_codestarnotifications_notification_rule" "backend_pipeline_notifications" {
+  name        = "backend-pipeline-notifications"
+  detail_type = "FULL"
+  resource    = aws_codepipeline.backend.arn
+
+  event_type_ids = [
+    "codepipeline-pipeline-pipeline-execution-succeeded",
+    "codepipeline-pipeline-pipeline-execution-failed",
+  ]
+
+  target {
+    address = var.sns_topic_arn
+    type    = "SNS"
   }
 
   tags = var.tags
