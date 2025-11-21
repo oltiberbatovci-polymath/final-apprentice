@@ -24,6 +24,7 @@ phases:
         if [ ! -d "dist" ]; then
           echo "✗ Build artifacts not found! Running build..."
           npm install
+          export VITE_API_URL="/api"
           npm run build
         fi
         echo "Build artifacts verified:"
