@@ -44,8 +44,47 @@ variable "alb_5xx_threshold" {
   default     = 5
 }
 
+variable "alb_4xx_threshold" {
+  description = "Threshold for ALB 4xx error count alarm"
+  type        = number
+  default     = 50
+}
+
 variable "cloudfront_cache_hit_ratio_threshold" {
   description = "Threshold for CloudFront cache hit ratio alarm (%)"
+  type        = number
+  default     = 80
+}
+
+variable "ecs_cluster_name" {
+  description = "ECS cluster name for dashboard metrics"
+  type        = string
+}
+
+variable "ecs_service_name" {
+  description = "ECS service name for dashboard metrics"
+  type        = string
+}
+
+variable "rds_identifier" {
+  description = "RDS instance identifier for dashboard metrics"
+  type        = string
+}
+
+variable "redis_replication_group_id" {
+  description = "ElastiCache Redis replication group ID for dashboard metrics"
+  type        = string
+  default     = ""
+}
+
+variable "cpu_utilization_threshold" {
+  description = "CPU utilization threshold for ECS alarm (%)"
+  type        = number
+  default     = 80
+}
+
+variable "memory_utilization_threshold" {
+  description = "Memory utilization threshold for ECS alarm (%)"
   type        = number
   default     = 80
 }

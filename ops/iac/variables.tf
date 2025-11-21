@@ -12,6 +12,12 @@ variable "cloudfront_distribution_id" {
   default     = "dev-cloudfront-dist-id"
 }
 
+  variable "frontend_domain_name" {
+    description = "Custom domain for the frontend"
+    type        = string
+    default     = "olti.devops.konitron.com"
+  }
+
 # Required: Environment name for CloudWatch
 
 # Required: ALB name for CloudWatch
@@ -31,6 +37,12 @@ variable "price_class" {
 # Optional: Enable warm standby (default false)
 variable "warm_standby" {
   description = "Enable warm standby ALB/ECS"
+  type        = bool
+  default     = false
+}
+
+variable "enable_route53_failover" {
+  description = "Enable Route53 failover routing between primary and standby ALBs"
   type        = bool
   default     = false
 }
@@ -201,6 +213,31 @@ variable "desired_count" {
   type        = number
 }
 
+# ECS Autoscaling
+variable "ecs_min_capacity" {
+  description = "Minimum number of ECS tasks for autoscaling"
+  type        = number
+  default     = 1
+}
+
+variable "ecs_max_capacity" {
+  description = "Maximum number of ECS tasks for autoscaling"
+  type        = number
+  default     = 10
+}
+
+variable "ecs_cpu_autoscale_target" {
+  description = "Target CPU utilization for ECS autoscaling (percent)"
+  type        = number
+  default     = 60
+}
+
+variable "ecs_memory_autoscale_target" {
+  description = "Target memory utilization for ECS autoscaling (percent)"
+  type        = number
+  default     = 75
+}
+
 # CloudFront
 
 # CloudWatch
@@ -300,4 +337,92 @@ variable "rds_deletion_protection" {
   description = "Enable deletion protection"
   type        = bool
   default     = true
+}
+
+# =====================
+# ElastiCache (Redis) Variables
+# =====================
+
+variable "redis_engine_version" {
+  description = "Redis engine version"
+  type        = string
+  default     = "7.0"
+}
+
+variable "redis_node_type" {
+  description = "ElastiCache node type"
+  type        = string
+  default     = "cache.t3.micro"
+}
+
+variable "redis_port" {
+  description = "Redis port"
+  type        = number
+  default     = 6379
+}
+
+variable "redis_num_cache_nodes" {
+  description = "Number of cache nodes (1 for non-cluster mode, 2+ for cluster mode with replication)"
+  type        = number
+  default     = 1
+}
+
+variable "redis_automatic_failover_enabled" {
+  description = "Enable automatic failover (requires num_cache_nodes >= 2)"
+  type        = bool
+  default     = false
+}
+
+variable "redis_multi_az_enabled" {
+  description = "Enable Multi-AZ for high availability"
+  type        = bool
+  default     = false
+}
+
+variable "redis_snapshot_retention_limit" {
+  description = "Number of days to retain snapshots"
+  type        = number
+  default     = 1
+}
+
+variable "redis_snapshot_window" {
+  description = "Daily time range for snapshots (UTC)"
+  type        = string
+  default     = "03:00-05:00"
+}
+
+variable "redis_maintenance_window" {
+  description = "Weekly maintenance window (UTC)"
+  type        = string
+  default     = "sun:05:00-sun:07:00"
+}
+
+variable "redis_transit_encryption_enabled" {
+  description = "Enable encryption in transit"
+  type        = bool
+  default     = true
+}
+
+variable "redis_at_rest_encryption_enabled" {
+  description = "Enable encryption at rest"
+  type        = bool
+  default     = true
+}
+
+variable "redis_cpu_alarm_threshold" {
+  description = "CPU utilization alarm threshold (%)"
+  type        = number
+  default     = 80
+}
+
+variable "redis_memory_alarm_threshold" {
+  description = "Memory utilization alarm threshold (%)"
+  type        = number
+  default     = 80
+}
+
+variable "redis_evictions_alarm_threshold" {
+  description = "Evictions alarm threshold (count)"
+  type        = number
+  default     = 100
 }

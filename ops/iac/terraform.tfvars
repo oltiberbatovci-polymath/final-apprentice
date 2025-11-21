@@ -9,7 +9,7 @@ tags = {                  # Common resource tags
 }
 
 
-
+   route53_zone_id = "Z0775364HM8ZHDFQ2NG4"  
 # =====================
 # Networking (VPC)
 # =====================
@@ -36,6 +36,12 @@ container_port = 5000                    # Container port (matches Dockerfile EX
 cpu            = "256"                   # Fargate CPU units (dev: 256)
 memory         = "512"                   # Fargate memory (dev: 512MB)
 desired_count  = 1                       # Number of ECS tasks
+
+# ECS Autoscaling Configuration
+ecs_min_capacity          = 1            # Minimum number of tasks
+ecs_max_capacity          = 10           # Maximum number of tasks
+ecs_cpu_autoscale_target  = 60           # Target CPU utilization (%)
+ecs_memory_autoscale_target = 75        # Target memory utilization (%)
 # ECS container definition JSON
 # ECS container definition - Now managed by template
 # See container-definition.json.tpl for the actual definition
@@ -208,9 +214,10 @@ ecs_cpu_threshold = 80 # CPU alarm threshold (%)
 # =====================
 # Route53 Failover (Warm Standby)
 # =====================
-# api_dns_name    = "api-dev.lerdi.com"     # API DNS name (matches your domain)
-# route53_zone_id = "Z07612111621S1WVA4637" # Your actual Hosted Zone ID from AWS
-# alb_zone_id     = "Z35SXDOTRQ7X7K"        # Example ALB zone ID for us-east-1
+enable_route53_failover = true              # Enable Route53 failover routing
+api_dns_name            = "api.olti.devops.konitron.com" # API DNS name (subdomain of your domain)
+alb_zone_id             = "Z35SXDOTRQ7X7K"  # ALB zone ID for us-east-1 (constant)
+# route53_zone_id is already set above (line 12)
 
 # =====================
 # Athena (Log Analysis)
@@ -231,6 +238,24 @@ rds_instance_class          = "db.t3.micro" # Small instance for dev
 rds_engine_version          = "15.10"       # PostgreSQL version (latest 15.x available in AWS RDS)
 rds_allocated_storage       = 20            # 20GB initial storage
 rds_max_allocated_storage   = 100           # Auto-scale up to 100GB
-rds_multi_az                = false         # Single AZ for dev (cost savings)
+rds_multi_az                = true          # Multi-AZ for high availability (production-ready)
 rds_backup_retention_period = 7             # 7 days backup retention
 rds_deletion_protection     = false         # Allow deletion in dev
+
+# =====================
+# ElastiCache (Redis)
+# =====================
+redis_engine_version            = "7.0"              # Redis version
+redis_node_type                 = "cache.t3.micro"  # Small instance for dev
+redis_port                      = 6379               # Standard Redis port
+redis_num_cache_nodes           = 2                 # 2 nodes required for automatic failover (production-ready)
+redis_automatic_failover_enabled = true             # Enable automatic failover for high availability
+redis_multi_az_enabled          = true              # Multi-AZ for high availability (production-ready)
+redis_snapshot_retention_limit  = 7                 # 7 days snapshot retention (production-ready)
+redis_snapshot_window            = "03:00-05:00"     # Snapshot window (UTC)
+redis_maintenance_window         = "sun:05:00-sun:07:00" # Maintenance window (UTC)
+redis_transit_encryption_enabled = true              # Enable encryption in transit
+redis_at_rest_encryption_enabled = true              # Enable encryption at rest
+redis_cpu_alarm_threshold        = 80                 # CPU alarm threshold (%)
+redis_memory_alarm_threshold    = 80                 # Memory alarm threshold (%)
+redis_evictions_alarm_threshold = 100                # Evictions alarm threshold

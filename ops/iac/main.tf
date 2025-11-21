@@ -52,7 +52,6 @@ module "rds" {
   multi_az                = var.rds_multi_az
   backup_retention_period = var.rds_backup_retention_period
   deletion_protection     = var.rds_deletion_protection
-  skip_final_snapshot     = var.environment == "dev" ? true : false
 
   # Monitoring
   monitoring_interval          = 60
@@ -88,7 +87,6 @@ module "rds_standby" {
   multi_az                = false # Single AZ for standby to reduce costs
   backup_retention_period = 3     # Shorter retention for standby
   deletion_protection     = var.rds_deletion_protection
-  skip_final_snapshot     = var.environment == "dev" ? true : false
 
   # Monitoring - basic monitoring for standby
   monitoring_interval          = 0     # No enhanced monitoring for standby
@@ -102,6 +100,47 @@ module "rds_standby" {
   tags = merge(var.tags, {
     Purpose = "Standby"
     Tier    = "Database"
+  })
+}
+
+# ElastiCache Module (Redis)
+module "elasticache" {
+  source = "./modules/elasticache"
+
+  name                  = "${var.ecs_name}-cache"
+  vpc_id                = module.vpc.vpc_id
+  private_subnet_ids    = module.vpc.db_subnet_ids # Use same isolated subnets as RDS
+  app_security_group_id = module.vpc.ecs_security_group_id
+
+  # Redis configuration
+  engine_version = var.redis_engine_version
+  node_type      = var.redis_node_type
+  port           = var.redis_port
+
+  # High availability (disabled for staging to reduce costs)
+  num_cache_nodes         = var.redis_num_cache_nodes
+  automatic_failover_enabled = var.redis_automatic_failover_enabled
+  multi_az_enabled        = var.redis_multi_az_enabled
+
+  # Backup and maintenance
+  snapshot_retention_limit = var.redis_snapshot_retention_limit
+  snapshot_window         = var.redis_snapshot_window
+  maintenance_window      = var.redis_maintenance_window
+
+  # Security
+  transit_encryption_enabled = var.redis_transit_encryption_enabled
+  at_rest_encryption_enabled = var.redis_at_rest_encryption_enabled
+
+  # Monitoring
+  log_retention_days      = var.log_retention_days
+  cpu_alarm_threshold     = var.redis_cpu_alarm_threshold
+  memory_alarm_threshold  = var.redis_memory_alarm_threshold
+  evictions_alarm_threshold = var.redis_evictions_alarm_threshold
+  alarm_actions           = [module.sns.sns_topic_arn]
+
+  tags = merge(var.tags, {
+    Purpose = "Cache"
+    Tier    = "Cache"
   })
 }
 
@@ -153,6 +192,12 @@ module "ecs" {
   target_group_arn      = module.alb.target_group_arn
   container_name        = var.container_name
   container_port        = var.container_port
+  
+  # Autoscaling configuration
+  min_capacity          = var.ecs_min_capacity
+  max_capacity          = var.ecs_max_capacity
+  cpu_autoscale_target = var.ecs_cpu_autoscale_target
+  memory_autoscale_target = var.ecs_memory_autoscale_target
 }
 
 # Standby ECS Service (Warm Standby)
@@ -171,19 +216,20 @@ module "ecs_standby" {
   container_port        = var.container_port
 }
 
-# Route 53 Failover for Warm Standby (commented out due to access restrictions)
-# Uncomment when you have access to the Route53 hosted zone
+# Route 53 Failover for Warm Standby
+# Enables automatic DNS failover between primary and standby ALBs
+module "route53_failover" {
+  count = var.enable_route53_failover && var.api_dns_name != "" && var.alb_zone_id != "" ? 1 : 0
 
-# module "route53_failover" {
-#   source               = "./modules/route53"
-#   primary_alb_dns_name = module.alb.alb_dns_name
-#   standby_alb_dns_name = module.alb_standby.alb_dns_name
-#   alb_zone_id          = var.alb_zone_id
-#   route53_zone_id      = var.route53_zone_id
-#   api_dns_name         = var.api_dns_name
-#   health_check_path    = var.health_check_path
-#   tags                 = var.tags
-# }
+  source               = "./modules/route53"
+  primary_alb_dns_name = module.alb.alb_dns_name
+  standby_alb_dns_name = module.alb_standby.alb_dns_name
+  alb_zone_id          = var.alb_zone_id
+  route53_zone_id      = var.route53_zone_id
+  api_dns_name         = var.api_dns_name
+  health_check_path    = var.health_check_path
+  tags                 = var.tags
+}
 
 # WAF Module
 module "waf" {
@@ -201,13 +247,78 @@ module "waf" {
   }
 }
 
+# ACM certificate for CloudFront
+resource "aws_acm_certificate" "cloudfront" {
+  provider          = aws.us_east_1
+  domain_name       = var.frontend_domain_name
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = var.tags
+}
+
+# DNS validation records in your hosted zone
+resource "aws_route53_record" "cloudfront_cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.cloudfront.domain_validation_options :
+    dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  }
+
+  zone_id = var.route53_zone_id
+  name    = each.value.name
+  type    = each.value.type
+  ttl     = 300
+  records = [each.value.record]
+}
+
+resource "aws_acm_certificate_validation" "cloudfront" {
+  provider                = aws.us_east_1
+  certificate_arn         = aws_acm_certificate.cloudfront.arn
+  validation_record_fqdns = [for r in aws_route53_record.cloudfront_cert_validation : r.fqdn]
+}
+
 module "cloudfront" {
   source                  = "./modules/cloudfront"
   s3_domain_name          = module.s3.frontend_bucket_domain_name
   alb_domain_name         = module.alb.alb_dns_name
   logs_bucket_domain_name = module.s3.cloudfront_logs_bucket_domain_name
   web_acl_arn             = module.waf.cloudfront_web_acl_arn
+  aliases                 = [var.frontend_domain_name]
+  acm_certificate_arn     = aws_acm_certificate_validation.cloudfront.certificate_arn
   tags                    = var.tags
+}
+
+# Route53 A record pointing domain to CloudFront
+resource "aws_route53_record" "frontend" {
+  zone_id = var.route53_zone_id
+  name    = var.frontend_domain_name
+  type    = "A"
+
+  alias {
+    name                   = module.cloudfront.cloudfront_domain_name
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront hosted zone ID (same for all distributions)
+    evaluate_target_health = false
+  }
+}
+
+# Route53 AAAA record for IPv6 support
+resource "aws_route53_record" "frontend_ipv6" {
+  zone_id = var.route53_zone_id
+  name    = var.frontend_domain_name
+  type    = "AAAA"
+
+  alias {
+    name                   = module.cloudfront.cloudfront_domain_name
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront hosted zone ID (same for all distributions)
+    evaluate_target_health = false
+  }
 }
 
 module "cloudwatch" {
@@ -224,6 +335,28 @@ module "cloudwatch" {
   alb_name                   = var.alb_name
   environment                = var.environment
   cloudfront_distribution_id = var.cloudfront_distribution_id
+}
+
+# Enhanced Monitoring Module with comprehensive dashboards and alarms
+module "monitoring" {
+  source                     = "./modules/monitoring"
+  environment                = var.environment
+  tags                       = var.tags
+  alb_name                   = var.alb_name
+  alb_arn                    = module.alb.alb_arn
+  alb_arn_suffix             = module.alb.alb_arn_suffix
+  sns_topic_arn              = module.sns.sns_topic_arn
+  cloudfront_distribution_id = module.cloudfront.cloudfront_distribution_id
+  ecs_cluster_name           = module.ecs.cluster_name
+  ecs_service_name           = module.ecs.service_name
+  rds_identifier             = module.rds.rds_instance_id
+  redis_replication_group_id = module.elasticache.replication_group_id
+  alb_latency_threshold      = 1.0
+  alb_5xx_threshold          = 5
+  alb_4xx_threshold          = 50
+  cloudfront_cache_hit_ratio_threshold = 80
+  cpu_utilization_threshold  = 80
+  memory_utilization_threshold = 80
 }
 
 module "sns" {

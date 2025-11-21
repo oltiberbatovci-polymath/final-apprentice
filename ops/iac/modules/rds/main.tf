@@ -176,9 +176,9 @@ resource "aws_db_instance" "primary" {
   performance_insights_retention_period = var.performance_insights_enabled ? var.performance_insights_retention_period : null
 
   # Deletion protection
-  deletion_protection       = var.deletion_protection
-  skip_final_snapshot       = var.skip_final_snapshot
-  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.name}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  deletion_protection = var.deletion_protection
+  # Always skip final snapshot for this non-production environment to avoid requiring a final_snapshot_identifier.
+  skip_final_snapshot = true
 
   # Copy tags to snapshots
   copy_tags_to_snapshot = true

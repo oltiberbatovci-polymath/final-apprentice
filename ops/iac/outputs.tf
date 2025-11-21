@@ -86,3 +86,33 @@ output "database_standby_connection_info" {
   value       = module.rds_standby.connection_info
   sensitive   = true
 }
+
+# =====================
+# ElastiCache (Redis) Outputs
+# =====================
+
+output "redis_endpoint" {
+  description = "Redis primary endpoint address"
+  value       = module.elasticache.redis_endpoint
+}
+
+output "redis_port" {
+  description = "Redis port"
+  value       = module.elasticache.redis_port
+}
+
+output "redis_connection_string" {
+  description = "Redis connection string (host:port)"
+  value       = module.elasticache.redis_connection_string
+}
+
+output "redis_secrets_arn" {
+  description = "ARN of the Secrets Manager secret containing Redis credentials"
+  value       = module.elasticache.secrets_manager_secret_arn
+}
+
+output "redis_connection_info" {
+  description = "Redis connection information for applications"
+  value       = module.elasticache.connection_info
+  sensitive   = true
+}

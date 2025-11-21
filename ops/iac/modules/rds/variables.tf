@@ -109,7 +109,7 @@ variable "deletion_protection" {
 variable "skip_final_snapshot" {
   description = "Skip final snapshot when deleting the DB"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # Encryption

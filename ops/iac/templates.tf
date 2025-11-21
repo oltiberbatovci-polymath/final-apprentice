@@ -53,6 +53,14 @@ locals {
         {
           name  = "XRAY_TRACING_NAME"
           value = var.ecs_name
+        },
+        {
+          name  = "REDIS_HOST"
+          value = module.elasticache.connection_info.host
+        },
+        {
+          name  = "REDIS_PORT"
+          value = tostring(module.elasticache.connection_info.port)
         }
       ]
 
@@ -60,6 +68,10 @@ locals {
         {
           name      = "DB_PASSWORD"
           valueFrom = "${module.rds.secrets_manager_secret_arn}:password::"
+        },
+        {
+          name      = "REDIS_PASSWORD"
+          valueFrom = "${module.elasticache.secrets_manager_secret_arn}:password::"
         }
       ]
 
@@ -122,6 +134,14 @@ locals {
         {
           name  = "XRAY_TRACING_NAME"
           value = "${var.ecs_name}-standby"
+        },
+        {
+          name  = "REDIS_HOST"
+          value = module.elasticache.connection_info.host
+        },
+        {
+          name  = "REDIS_PORT"
+          value = tostring(module.elasticache.connection_info.port)
         }
       ]
 
@@ -129,6 +149,10 @@ locals {
         {
           name      = "DB_PASSWORD"
           valueFrom = "${module.rds_standby.secrets_manager_secret_arn}:password::"
+        },
+        {
+          name      = "REDIS_PASSWORD"
+          valueFrom = "${module.elasticache.secrets_manager_secret_arn}:password::"
         }
       ]
 

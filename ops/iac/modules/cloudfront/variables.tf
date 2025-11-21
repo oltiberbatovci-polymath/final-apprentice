@@ -10,6 +10,11 @@ variable "aliases" {
   default     = []
 }
 
+variable "acm_certificate_arn" {
+  description = "ACM certificate ARN for the CloudFront custom domain"
+  type        = string
+}
+
 variable "price_class" {
   description = "Price class for the distribution"
   type        = string

@@ -76,10 +76,11 @@ resource "aws_cloudfront_distribution" "this" {
       value = var.alb_domain_name
     }
   }
-  viewer_certificate {
-    cloudfront_default_certificate = true
-    minimum_protocol_version       = "TLSv1.2_2021"
-  }
+viewer_certificate {
+  acm_certificate_arn      = var.acm_certificate_arn
+  ssl_support_method       = "sni-only"
+  minimum_protocol_version = "TLSv1.2_2021"
+}
   logging_config {
     bucket          = var.logs_bucket_domain_name
     include_cookies = false
